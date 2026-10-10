@@ -2,7 +2,7 @@
    App files: network first (so updates arrive), cached copy when offline.
    Firebase library and fonts: cached after first use.
    Database traffic is never touched here; Firebase handles its own offline queue. */
-const CACHE = 'gezinsplanning-v1';
+const CACHE = 'gezinsplanning-v2';
 const SHELL = ['./', './index.html', './config.js', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png'];
 
@@ -22,8 +22,9 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
 
   if (url.origin === location.origin) {
+    /* 'no-cache' = always ask GitHub whether there is a newer version (GitHub lets browsers keep files up to 10 min) */
     e.respondWith(
-      fetch(req)
+      fetch(req.url, {cache: 'no-cache', credentials: 'same-origin'})
         .then(res => { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); return res; })
         .catch(() => caches.match(req, {ignoreSearch: true}).then(r => r || caches.match('./index.html')))
     );
