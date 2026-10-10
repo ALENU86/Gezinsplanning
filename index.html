@@ -1,0 +1,1005 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Gezinsplanning</title>
+<meta name="theme-color" content="#1f2a37">
+<meta name="description" content="Weekplanning voor het gezin">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1f2a37; --muted:#737c8a; --faint:#b8b2a5; --line:#e6e1d6;
+  --paper:#fffdf8; --cell:#ffffff; --soft:#f5f1e8; --we:#fff6ec; --we-line:#f3dcc2;
+  --accent:#e8914a;
+  --A:#2f6fb3; --K:#d0546a; --V:#2e9c6a; --M:#8a5bc7;
+  --morning:#fff8e1; --afternoon:#fdf1e7; --evening:#edf1fa;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:#e8e5de; color:var(--ink);
+  font-family:Nunito,"Segoe UI",system-ui,sans-serif;
+  -webkit-print-color-adjust:exact; print-color-adjust:exact;
+}
+
+/* ---------- screen toolbar ---------- */
+.toolbar{
+  max-width:283mm; margin:18px auto 10px; padding:0 16px;
+  display:flex; flex-wrap:wrap; align-items:center; gap:8px;
+}
+.toolbar button{
+  font:700 13px Nunito,system-ui,sans-serif; color:var(--ink);
+  background:#fff; border:1px solid #d6d1c6; border-radius:999px;
+  padding:7px 14px; cursor:pointer; transition:background .15s, transform .1s;
+}
+.toolbar button:hover{background:#f7f4ee}
+.toolbar button:active{transform:translateY(1px)}
+.toolbar .primary{background:var(--ink); color:#fff; border-color:var(--ink)}
+.toolbar .primary:hover{background:#34414f}
+.toolbar .wk{font-weight:800; font-size:14px; min-width:150px; text-align:center}
+.toolbar .spacer{flex:1}
+.toolbar .more{display:contents}
+#moreBtn{display:none}
+.daytabs{display:none}
+.sync{font-size:12px; font-weight:800; padding:5px 10px; border-radius:999px; background:var(--soft); color:var(--muted); white-space:nowrap}
+.sync[hidden]{display:none}
+.sync.ok{color:#2e7d4f; background:#e6f4ea}
+.sync.off{color:#8a5a00; background:#fff3d6}
+.sync.err{color:#b0463f; background:#fde8e6}
+.hint{max-width:283mm; margin:0 auto 12px; padding:0 16px; font-size:12.5px; color:var(--muted)}
+.printhint{
+  max-width:calc(283mm - 32px); margin:0 auto 10px; padding:10px 14px; font-size:13px;
+  background:#fff3e2; border:1px solid #f0c897; border-radius:10px; color:#6b4a1f;
+}
+.printhint[hidden]{display:none}
+.exportbox{line-height:1.5}
+.exportbox textarea{display:block; width:100%; height:70px; margin:8px 0; font:11px Consolas,monospace; border:1px solid #e3c9a3; border-radius:6px; padding:6px}
+.exportbox button{font:700 12px Nunito,system-ui,sans-serif; background:#fff; border:1px solid #d6b98f; border-radius:999px; padding:5px 12px; cursor:pointer}
+.wrap{overflow-x:auto; padding:0 16px 32px}
+
+/* ---------- the sheet ---------- */
+.sheet{
+  width:283mm; height:196mm; margin:0 auto; overflow:hidden;
+  background:var(--paper); border-radius:3mm;
+  box-shadow:0 1px 2px rgba(0,0,0,.06), 0 10px 30px rgba(0,0,0,.10);
+  padding:4.5mm 5mm 4.5mm; display:flex; flex-direction:column; gap:2.5mm;
+}
+
+header{display:flex; align-items:center; gap:4mm; height:13mm; flex:none}
+.brand{display:flex; align-items:center; gap:2.8mm}
+.logo{
+  width:11mm; height:11mm; border-radius:3mm; background:var(--ink);
+  display:grid; place-items:center; font-size:15pt;
+}
+h1{margin:0; font-size:19pt; font-weight:900; letter-spacing:-.02em; line-height:1}
+.famibar{display:flex; gap:.7mm; margin-top:1.3mm}
+.famibar i{display:block; width:7mm; height:1.1mm; border-radius:1mm}
+.range{font-size:9pt; font-weight:700; color:var(--muted); margin-left:1mm}
+.weekpill{
+  background:var(--accent); color:#fff; border-radius:2.5mm;
+  padding:1.2mm 3mm; text-align:center; line-height:1.05;
+}
+.weekpill small{display:block; font-size:6.5pt; font-weight:800; letter-spacing:.1em; text-transform:uppercase; opacity:.9}
+.weekpill b{font-size:15pt; font-weight:900}
+.legend{margin-left:auto; display:flex; gap:1.6mm}
+.pill{
+  display:flex; align-items:center; gap:1.3mm; font-size:8.5pt; font-weight:800;
+  padding:1mm 2.6mm 1mm 1mm; border-radius:999px; background:var(--soft);
+}
+.pill .dot{width:4.6mm; height:4.6mm; font-size:6.5pt}
+
+/* ---------- grid ---------- */
+.grid{
+  flex:1; min-height:0; display:grid; gap:1mm;
+  grid-template-columns:19mm repeat(7, minmax(0,1fr));
+  grid-template-rows:9.5mm 12.5mm 11mm repeat(7, minmax(0,1fr)) 15mm 22mm;
+}
+.dh{
+  background:var(--ink); color:#fff; border-radius:2mm;
+  display:flex; align-items:center; justify-content:space-between; padding:0 2.2mm;
+}
+.dh.we{background:var(--accent)}
+.dh .dn{font-size:9pt; font-weight:900}
+.dh .dd{font-size:7.5pt; font-weight:700; opacity:.85}
+
+.rl{
+  display:flex; flex-direction:column; justify-content:center; gap:.3mm;
+  padding:0 1.2mm; border-radius:2mm; background:var(--soft);
+  font-size:6.6pt; font-weight:900; text-transform:uppercase; letter-spacing:.04em; color:#5b6472; line-height:1.1;
+}
+.rl .ic{font-size:9pt; line-height:1}
+.rl .sub{font-size:5.6pt; font-weight:700; text-transform:none; letter-spacing:0; color:var(--muted)}
+.rl.time{flex-direction:row; align-items:center; justify-content:center; font-size:8.5pt; letter-spacing:0; color:var(--ink)}
+.rl.time.morning{background:var(--morning)}
+.rl.time.afternoon{background:var(--afternoon)}
+.rl.time.evening{background:var(--evening)}
+.rl.time .ed{height:auto; text-align:center; outline:none}
+
+.cell{
+  position:relative; overflow:hidden; background:var(--cell);
+  border:.3mm solid var(--line); border-radius:1.8mm;
+  padding:.9mm 1.3mm; font-size:7.6pt; line-height:1.22;
+}
+.cell.we{background:var(--we); border-color:var(--we-line)}
+.cell:focus-within{border-color:#9fb4cf; box-shadow:0 0 0 .5mm rgba(47,111,179,.15)}
+
+.ed{outline:none; white-space:pre-wrap; word-break:break-word; height:100%; overflow:hidden; cursor:text}
+.ed:empty::before{content:attr(data-ph); color:var(--faint); font-style:italic}
+
+/* person dots */
+.dot{
+  width:3mm; height:3mm; border-radius:50%; border:none; padding:0; flex:none;
+  display:inline-grid; place-items:center; font:900 5.4pt Nunito,system-ui,sans-serif;
+  color:#fff; background:var(--c);
+}
+button.dot{cursor:pointer; background:transparent; color:var(--c); box-shadow:inset 0 0 0 .25mm var(--c); opacity:.35; transition:opacity .12s}
+button.dot:hover{opacity:.8}
+button.dot[aria-pressed="true"]{background:var(--c); color:#fff; box-shadow:none; opacity:1}
+
+/* time slots */
+.slot{padding-left:2.4mm}
+.slot::before{content:""; position:absolute; left:0; top:0; bottom:0; width:1.2mm; background:var(--stripe, transparent)}
+/* person picker: only shown while hovering or typing in a box, never printed */
+.slot .dots{
+  position:absolute; right:.5mm; top:.5mm; z-index:2; display:none; gap:.5mm;
+  background:#fff; border-radius:2mm; padding:.5mm; box-shadow:0 .3mm 1.2mm rgba(0,0,0,.18);
+}
+.slot:hover .dots, .slot:focus-within .dots{display:flex}
+.slot .dots .dot{width:3.6mm; height:3.6mm; font-size:6pt}
+.slot .ed, .appt .ed{font-size:var(--fs, 7.6pt)}
+.slot .ed{height:auto; min-height:4mm}
+.slot .recs:not(:empty) + .ed{min-height:0}
+.rec{
+  display:flex; align-items:center; gap:.6mm; min-width:0; max-width:100%; overflow:hidden;
+  border:none; border-radius:1mm; padding:.25mm 1mm .25mm 1.3mm; margin:0 0 .5mm; cursor:pointer; text-align:left;
+  font:800 calc(var(--fs, 7.6pt) * .9)/1.15 Nunito,system-ui,sans-serif; color:var(--ink);
+  background:color-mix(in srgb, var(--c) 15%, white); box-shadow:inset .6mm 0 0 var(--c);
+}
+.rec .rt{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.rec[aria-pressed="true"]{opacity:.35; text-decoration:line-through}
+
+/* panels (fixed activities, family) */
+.recpanel{
+  max-width:calc(283mm - 32px); margin:0 auto 12px; background:#fff; border:1px solid #ddd6c8;
+  border-radius:12px; padding:12px 16px; font-size:13px; box-shadow:0 6px 20px rgba(0,0,0,.06);
+}
+.recpanel[hidden]{display:none}
+.rp-head{display:flex; flex-wrap:wrap; gap:4px 12px; align-items:baseline; margin-bottom:6px}
+.rp-head b{font-size:15px}
+.rp-head span{color:var(--muted); font-size:12.5px}
+.rp-row{display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:7px 0; border-top:1px solid #f0ebe1}
+.rp-row input, .rp-row select{
+  flex:none; width:auto; font:600 13px Nunito,system-ui,sans-serif; color:var(--ink);
+  border:1px solid #d9d3c6; border-radius:8px; padding:4px 8px; background:#fff;
+}
+.rp-row .rp-t{width:210px}
+.rp-who{display:flex; gap:4px}
+.rp-who .dot, .rp-row > .dot{width:22px; height:22px; font-size:10.5px}
+.rp-sep{color:var(--muted); font-size:12px}
+.rp-del{border:none; background:none; cursor:pointer; color:#b0463f; font-size:15px; margin-left:auto}
+.rp-foot{display:flex; gap:8px; padding-top:8px; border-top:1px solid #f0ebe1}
+.rp-foot button{font:700 13px Nunito,system-ui,sans-serif; background:#fff; border:1px solid #d6d1c6; border-radius:999px; padding:6px 14px; cursor:pointer}
+.rp-foot .primary{background:var(--ink); color:#fff; border-color:var(--ink); margin-left:auto}
+
+/* work location + drop-off rows */
+.line.work .client{
+  display:none; flex:1; min-width:0; border:none; border-bottom:.25mm dotted #d9d3c6; background:transparent;
+  font:800 7.4pt Nunito,system-ui,sans-serif; color:var(--ink); padding:0; outline:none;
+}
+.line.work .client::placeholder{color:var(--faint); font-weight:600; font-style:italic}
+.line.work.klant select{flex:0 0 4.4mm; overflow:hidden}
+.line.work.klant .client{display:block}
+.line{display:flex; align-items:center; gap:1mm; height:50%; min-width:0}
+.line .tag{font-size:6.2pt; font-weight:800; color:var(--muted); width:8mm; flex:none; text-transform:uppercase; letter-spacing:.02em}
+.line .dot{width:2.4mm; height:2.4mm}
+select{
+  appearance:none; -webkit-appearance:none; border:none; background:transparent;
+  font:700 7.6pt Nunito,system-ui,sans-serif; color:var(--ink);
+  flex:1; min-width:0; padding:0 0 .2mm; cursor:pointer; text-overflow:ellipsis;
+  border-bottom:.25mm dotted transparent;
+}
+select:invalid{color:var(--faint); font-weight:600; border-bottom-color:#d9d3c6}
+select option{color:var(--ink)}
+
+/* appointments */
+.appt .quick{
+  position:absolute; right:.6mm; bottom:.6mm; display:none; gap:.4mm;
+  background:#fff; border-radius:1.4mm; padding:.3mm; box-shadow:0 .3mm 1.2mm rgba(0,0,0,.15);
+}
+.appt:focus-within .quick{display:flex}
+.quick button{border:none; background:none; cursor:pointer; font-size:8pt; padding:0 .3mm; line-height:1.3}
+.quick button:hover{background:var(--soft); border-radius:1mm}
+
+/* dinner */
+.dinner{display:flex; flex-direction:column; gap:.8mm; background:linear-gradient(#fff, #fffaf1)}
+.dinner.we{background:linear-gradient(var(--we), #ffeedd)}
+.dinner .ed{flex:1; min-height:0; height:auto; font-weight:700; font-size:var(--fs, 8pt)}
+.dinner .meta{display:flex; align-items:center; gap:.7mm; border-top:.25mm dashed var(--line); padding-top:.7mm}
+.dinner .meta .dot{width:2.9mm; height:2.9mm}
+.dinner .meta select{font-size:6.8pt; text-align:right; margin-left:.5mm}
+
+/* login */
+.login{position:fixed; inset:0; z-index:100; background:rgba(31,42,55,.55); display:grid; place-items:center; padding:16px}
+.login[hidden]{display:none}
+.login form{background:var(--paper); border-radius:18px; padding:24px; width:min(360px,100%); display:flex; flex-direction:column; gap:10px; box-shadow:0 20px 50px rgba(0,0,0,.3)}
+.login .logo{width:48px; height:48px; font-size:24px; border-radius:12px}
+.login h2{margin:4px 0 0; font-size:22px; font-weight:900}
+.login p{margin:0; color:var(--muted); font-size:14px}
+.login input{font:600 16px Nunito,system-ui,sans-serif; padding:10px 12px; border:1px solid #d9d3c6; border-radius:10px; background:#fff}
+.login button{font:800 15px Nunito,system-ui,sans-serif; padding:11px; border-radius:999px; border:none; background:var(--ink); color:#fff; cursor:pointer}
+.login .google{display:flex; align-items:center; justify-content:center; gap:10px; background:#fff; color:var(--ink); border:1px solid #d9d3c6}
+.login .google:hover{background:#f7f4ee}
+.login .link{background:none; color:var(--muted); font-weight:700; font-size:13px; text-decoration:underline; padding:4px}
+.login .err{color:#b0463f; font-weight:700; min-height:1em}
+
+/* ---------- phone layout: one day at a time ---------- */
+@media (max-width:760px){
+  body{background:var(--paper)}
+  .toolbar{
+    position:sticky; top:0; z-index:20; margin:0; max-width:none; gap:6px;
+    padding:calc(8px + env(safe-area-inset-top)) 12px 8px; background:var(--paper); border-bottom:1px solid var(--line);
+  }
+  .toolbar button{padding:8px 12px; font-size:14px}
+  .toolbar .wk{min-width:0; flex:1; font-size:15px}
+  .toolbar .spacer, #print, .hint{display:none}
+  .toolbar .more{display:none; width:100%; flex-wrap:wrap; gap:6px}
+  .toolbar.open .more{display:flex}
+  #moreBtn{display:inline-block}
+  .daytabs{display:grid; grid-template-columns:repeat(7, 1fr); gap:4px; width:100%}
+  .toolbar .daytabs button{
+    border:none; border-radius:10px; background:var(--soft); padding:5px 0; font:800 11px Nunito,system-ui,sans-serif;
+    display:flex; flex-direction:column; align-items:center; line-height:1.15; color:var(--ink);
+  }
+  .toolbar .daytabs button span{font-size:16px; font-weight:900}
+  .toolbar .daytabs button.we{background:var(--we)}
+  .toolbar .daytabs button.today{box-shadow:inset 0 0 0 2px var(--accent)}
+  .toolbar .daytabs button[aria-selected="true"]{background:var(--ink); color:#fff}
+  .wrap{padding:0 0 40px; overflow:visible}
+  .sheet{width:auto; height:auto; overflow:visible; border-radius:0; box-shadow:none; padding:12px; gap:12px}
+  header{height:auto; flex-wrap:wrap; gap:8px 10px}
+  .logo{width:40px; height:40px; font-size:20px; border-radius:10px}
+  h1{font-size:22px}
+  .famibar{display:none}
+  .weekpill{padding:4px 10px; border-radius:10px}
+  .weekpill small{font-size:9px}
+  .weekpill b{font-size:18px}
+  .range{font-size:13px; margin-left:0}
+  .legend{margin-left:0; width:100%; flex-wrap:wrap; gap:6px}
+  .pill{font-size:13px; padding:3px 10px 3px 3px; gap:6px}
+  .pill .dot{width:20px; height:20px; font-size:10px}
+  .grid{grid-template-columns:78px minmax(0,1fr); grid-template-rows:none; grid-auto-rows:auto; gap:6px}
+  .grid .off, .grid .dh, .grid > .corner{display:none !important}
+  .rl{font-size:10px; padding:6px 7px; border-radius:10px}
+  .rl .ic{font-size:16px}
+  .rl .sub{font-size:9.5px}
+  .rl.time{font-size:14px}
+  .cell{font-size:15px; padding:8px 10px; border-radius:10px; border-width:1px; min-height:46px}
+  .slot{padding-left:14px; min-height:56px}
+  .slot::before{width:6px}
+  .slot .ed, .appt .ed{font-size:15px}
+  .slot .ed{min-height:24px}
+  .slot .dots{position:static; float:right; box-shadow:none; background:none; padding:0; margin:0 0 4px 8px; gap:5px}
+  .slot:hover .dots{display:none}
+  .slot:focus-within .dots{display:flex}
+  .slot .dots .dot{width:28px; height:28px; font-size:12px}
+  .rec{font-size:13px; padding:4px 8px 4px 10px; border-radius:6px; margin-bottom:4px; box-shadow:inset 4px 0 0 var(--c)}
+  .line{height:auto; gap:8px; padding:4px 0}
+  .line .dot{width:12px; height:12px}
+  .line .tag{font-size:11px; width:46px}
+  select{font-size:15px; padding:4px 0}
+  .line.work .client{font-size:15px}
+  .line.work.klant select{flex:0 0 26px}
+  .appt .ed{min-height:36px}
+  .appt .quick{position:static; display:flex; flex-wrap:wrap; margin-top:6px; box-shadow:none; background:none; padding:0; gap:4px}
+  .quick button{font-size:20px; padding:2px 6px; background:var(--soft); border-radius:8px}
+  .dinner .ed{min-height:28px; font-size:16px}
+  .dinner .meta{gap:8px; padding-top:8px}
+  .dinner .meta .dot{width:24px; height:24px}
+  .dinner .meta select{font-size:14px}
+  .recpanel, .printhint{margin:10px 12px}
+  .rp-row .rp-t{width:100%}
+}
+
+@page{size:A4 landscape; margin:7mm}
+@media print{
+  body{background:#fff}
+  .toolbar,.hint,.printhint,.quick,.recpanel,.login{display:none !important}
+  .rec[aria-pressed="true"]{display:none}
+  .slot .dots{display:none !important}
+  .line.work .client::placeholder{color:transparent}
+  .wrap{padding:0; overflow:visible}
+  .sheet{box-shadow:none; border-radius:0; height:195mm; padding:1mm 0 0}
+  .ed:empty::before{content:""}
+  button.dot:not([aria-pressed="true"]){visibility:hidden}
+  .dinner button.dot:not([aria-pressed="true"]){visibility:visible; opacity:.25}
+  .cell:focus-within{box-shadow:none; border-color:var(--line)}
+}
+</style>
+</head>
+<body>
+
+<div class="toolbar" id="toolbar">
+  <button id="prev" title="Vorige week">‹</button>
+  <span class="wk" id="wkLabel"></span>
+  <button id="next" title="Volgende week">›</button>
+  <span class="sync" id="syncStatus" hidden></span>
+  <span class="spacer"></span>
+  <button id="moreBtn" title="Meer">⋯</button>
+  <span class="more">
+    <button id="recBtn" title="Activiteiten die elke week of maand terugkomen">🔁 Vaste activiteiten</button>
+    <button id="famBtn" title="Namen van het gezin">👪 Gezin</button>
+    <button id="copy" title="Werkplekken en brengen/halen overnemen van de vorige week">↻ Routine vorige week</button>
+    <button id="clear">Week leegmaken</button>
+    <button id="import" title="Een eerder opgeslagen planning openen">📂 Openen</button>
+    <button id="export" title="Alle ingevulde weken opslaan als bestand">💾 Opslaan</button>
+    <button id="authBtn" hidden></button>
+  </span>
+  <input type="file" id="importFile" accept=".json,application/json" hidden>
+  <button id="print" class="primary">🖨 Afdrukken</button>
+  <nav class="daytabs" id="dayTabs"></nav>
+</div>
+<div class="recpanel" id="recPanel" hidden>
+  <div class="rp-head"><b>🔁 Vaste activiteiten</b>
+    <span>Komen automatisch in de juiste weken te staan. Valt er eens één weg? Tik erop in de planning om ze die week over te slaan.</span></div>
+  <div id="recList"></div>
+  <div class="rp-foot"><button id="recAdd" type="button">+ Activiteit toevoegen</button><button id="recClose" type="button" class="primary">Klaar</button></div>
+</div>
+<div class="recpanel" id="famPanel" hidden>
+  <div class="rp-head"><b>👪 Ons gezin</b>
+    <span>De namen worden enkel in jullie eigen opslag bewaard, niet in de code van de app.</span></div>
+  <div id="famList"></div>
+  <div class="rp-foot"><button id="famSave" type="button" class="primary">Bewaren</button></div>
+</div>
+<div class="printhint exportbox" id="exportBox" hidden>
+  <b>💾 Opgeslagen als <span id="exportName"></span></b> — normaal staat het bestand nu in je map <b>Downloads</b>.
+  Bewaar het op een veilige plek; later open je het terug met 📂 Openen.
+  <br>Geen download gezien? Kopieer de tekst hieronder, plak die in Kladblok en bewaar als <i>.json</i>.
+  <textarea id="exportText" readonly></textarea>
+  <button id="exportCopy" type="button">📋 Kopieer tekst</button> <button id="exportClose" type="button">Sluiten</button>
+</div>
+<p class="printhint" id="printHint" hidden>🖨 Dit venster laat de afdrukknop niet toe. Druk op <b>Ctrl + P</b>, of open de planning rechtstreeks in Edge of Chrome en klik daar op Afdrukken.</p>
+<p class="hint">Klik in een vak om te typen · ga met de muis over een tijdsvak en klik op een letter om aan te duiden wie erbij is (de kleur verschijnt links in het vak) · terugkerende dingen zet je bij <b>🔁 Vaste activiteiten</b> · met <b>💾 Opslaan</b> bewaar je alles als bestand.</p>
+
+<div class="wrap" id="wrap">
+  <div class="sheet">
+    <header>
+      <div class="brand">
+        <div class="logo">🏡</div>
+        <div>
+          <h1>Gezinsplanning</h1>
+          <div class="famibar" id="famibar"></div>
+        </div>
+      </div>
+      <div class="weekpill"><small>Week</small><b id="wkNo"></b></div>
+      <div class="range" id="range"></div>
+      <div class="legend" id="legend"></div>
+    </header>
+    <div class="grid" id="grid"></div>
+  </div>
+</div>
+
+<div class="login" id="login" hidden>
+  <form id="loginForm">
+    <div class="logo">🏡</div>
+    <h2>Gezinsplanning</h2>
+    <p>Log in met je Google-account om jullie gedeelde planning te zien.</p>
+    <button type="submit" class="google">
+      <svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.4 5.7c4.3-4 6.9-9.9 6.9-17.1z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-2.9-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.4-5.7c-2.1 1.4-4.8 2.3-8.5 2.3-6.2 0-11.5-4.1-13.4-9.8l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg>
+      Inloggen met Google
+    </button>
+    <p class="err" id="lgErr"></p>
+    <button type="button" class="link" id="lgLocal">Zonder inloggen verder (enkel op dit toestel)</button>
+  </form>
+</div>
+
+<script src="config.js"></script>
+<script>
+/* People: ids and colours only. Names live in the family's own storage (👪 Gezin), never in this code. */
+const P = [
+  {id:'A', c:'var(--A)', name:''},
+  {id:'K', c:'var(--K)', name:''},
+  {id:'V', c:'var(--V)', name:''},
+  {id:'M', c:'var(--M)', name:''},
+];
+const PARENTS = P.slice(0, 2);
+const ROLE = ['Ouder', 'Ouder', 'Kind', 'Kind'];
+const DAYS = ['Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag','Zondag'];
+const MON  = ['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'];
+const WORK = ['🏠 Thuis','🏢 Kantoor','🤝 Bij klant','🚆 Onderweg','🌴 Vrij','🤒 Ziek'];
+const SLOTS = ['07–09','09–11','11–13','13–15','15–17','17–19','19–21'];
+const PART  = ['morning','morning','morning','afternoon','afternoon','evening','evening'];
+const QUICK = [['🩺','Dokter'],['🦷','Tandarts'],['⚽','Sport'],['🎵','Muziek'],['🎂','Verjaardag'],['📚','School']];
+const REC_KEY = 'gezinsplanning:recurring', SLOT_KEY = 'gezinsplanning:slots', FAM_KEY = 'gezinsplanning:family';
+const CFG = window.GP_CONFIG || {};
+
+const pname  = p => p.name || `Persoon ${P.indexOf(p) + 1}`;
+const letter = p => (p.name || p.id).charAt(0).toUpperCase();
+const whoList  = () => [...PARENTS.map(p => p.name).filter(Boolean), 'Oma & opa', 'Opvang', 'Carpool', 'Zelf'];
+const cookList = () => [...P.map(p => p.name).filter(Boolean), 'Samen', 'Afhalen', 'Restjes'];
+
+/* localStorage with an in-memory fallback; when sync is on, every change is also pushed to the shared database */
+const mem = {};
+const store = {
+  get(k){ try{ const v = localStorage.getItem(k); if (v != null) return JSON.parse(v); }catch(e){} return k in mem ? mem[k] : null; },
+  local(k, v){ mem[k] = v; try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} },
+  set(k, v){ store.local(k, v); if (window.GP_REMOTE) GP_REMOTE.push(k, v); },
+  del(k){ delete mem[k]; try{ localStorage.removeItem(k); }catch(e){} if (window.GP_REMOTE) GP_REMOTE.push(k, {}); },
+  keys(){
+    const s = new Set(Object.keys(mem));
+    try{ for (let i = 0; i < localStorage.length; i++) s.add(localStorage.key(i)); }catch(e){}
+    return [...s].filter(k => k.startsWith('gezinsplanning:'));
+  },
+};
+
+function el(tag, attrs = {}, ...kids){
+  const n = document.createElement(tag);
+  for (const [k,v] of Object.entries(attrs)){
+    if (k === 'class') n.className = v;
+    else if (k === 'style') n.style.cssText = v;
+    else n.setAttribute(k, v);
+  }
+  for (const c of kids.flat()) if (c != null) n.append(c);
+  return n;
+}
+const ed = (key, ph = '') => el('div', {class:'ed', contenteditable:'plaintext-only', 'data-k':key, 'data-ph':ph, spellcheck:'false'});
+const dotBtn = (key, p, def = false, showLetter = true) => el('button', {class:'dot', type:'button', style:`--c:${p.c}`, 'data-k':key,
+  'data-def':def ? '1' : '0', 'aria-pressed':'false', 'data-person':p.id, ...(showLetter ? {'data-letter':'1'} : {})}, showLetter ? letter(p) : '');
+function sel(key, opts, ph = '—', list){
+  const s = el('select', {'data-k':key, required:'', ...(list ? {'data-list':list} : {})}, el('option', {value:''}, ph));
+  opts.forEach(o => s.append(el('option', {value:o}, o)));
+  return s;
+}
+function ensureOption(s, v){ if (v && ![...s.options].some(o => o.value === v)) s.append(el('option', {value:v}, v)); }
+function setOptions(s, opts){
+  const v = s.value;
+  s.replaceChildren(s.options[0], ...opts.map(o => el('option', {value:o}, o)));
+  ensureOption(s, v); s.value = v;
+}
+
+/* ---------- dates ---------- */
+function mondayOf(d){ const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - (x.getDay() + 6) % 7); return x; }
+function isoWeek(d){
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  t.setUTCDate(t.getUTCDate() + 4 - (t.getUTCDay() || 7));
+  const y0 = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+  return {y:t.getUTCFullYear(), w:Math.ceil(((t - y0) / 864e5 + 1) / 7)};
+}
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const weekKey = d => { const {y,w} = isoWeek(d); return `gezinsplanning:${y}-W${String(w).padStart(2,'0')}`; };
+
+const mq = matchMedia('(max-width: 760px)');
+const todayIdx = () => (new Date().getDay() + 6) % 7;
+/* phone: this week, today; computer: plan next week */
+let monday = addDays(mondayOf(new Date()), mq.matches ? 0 : 7);
+let day = mq.matches ? todayIdx() : 0;
+
+/* ---------- build ---------- */
+const famibar = document.getElementById('famibar');
+const legend = document.getElementById('legend');
+P.forEach(p => famibar.append(el('i', {style:`background:${p.c}`})));
+
+const g = document.getElementById('grid');
+const isWe = d => d >= 5 ? ' we' : '';
+const label = (ic, txt, sub) => el('div', {class:'rl'}, el('span', {class:'ic'}, ic), txt, sub ? el('span', {class:'sub'}, sub) : null);
+const dayCell = (d, cls, ...kids) => el('div', {class:'cell ' + cls + isWe(d), 'data-day':d}, ...kids);
+
+g.append(el('div', {class:'corner'}));
+DAYS.forEach((n, d) => g.append(el('div', {class:'dh' + isWe(d), 'data-day':d}, el('span', {class:'dn'}, n), el('span', {class:'dd', id:'dd' + d}))));
+
+g.append(label('💼', 'Werkplek'));
+DAYS.forEach((_, d) => g.append(dayCell(d, '',
+  PARENTS.map(p => el('div', {class:'line work'}, el('span', {class:'dot', style:`--c:${p.c}`, 'data-person':p.id}), sel(`w-${d}-${p.id}`, WORK),
+    el('input', {class:'client', 'data-k':`w-${d}-${p.id}-klant`, placeholder:'welke klant?', spellcheck:'false', title:'Naam van de klant'}))))));
+
+g.append(label('🎒', 'Brengen / halen'));
+DAYS.forEach((_, d) => g.append(dayCell(d, '',
+  el('div', {class:'line'}, el('span', {class:'tag'}, 'Breng'), sel(`b-${d}-in`, whoList(), '—', 'who')),
+  el('div', {class:'line'}, el('span', {class:'tag'}, 'Haal'), sel(`b-${d}-out`, whoList(), '—', 'who')))));
+
+SLOTS.forEach((t, i) => {
+  g.append(el('div', {class:'rl time ' + PART[i]}, el('div', {class:'ed', contenteditable:'plaintext-only', 'data-g':`slot-${i}`, spellcheck:'false'}, t)));
+  DAYS.forEach((_, d) => g.append(el('div', {class:'cell slot' + isWe(d), 'data-day':d, 'data-slot':`s-${d}-${i}`},
+    el('div', {class:'dots'}, P.map(p => dotBtn(`s-${d}-${i}-${p.id}`, p))),
+    el('div', {class:'recs'}),
+    ed(`s-${d}-${i}`))));
+});
+
+g.append(label('🩺', 'Afspraken & hobby’s'));
+DAYS.forEach((_, d) => g.append(dayCell(d, 'appt',
+  ed(`a-${d}`, d === 0 ? 'bv. 🦷 tandarts 16u' : ''),
+  el('div', {class:'quick'}, QUICK.map(([e, t]) => el('button', {type:'button', title:t, 'data-emo':e}, e))))));
+
+g.append(label('🍽️', 'Avondeten', 'wat · wie eet mee · wie kookt'));
+DAYS.forEach((_, d) => g.append(dayCell(d, 'dinner',
+  ed(`dn-${d}`, 'Wat eten we?'),
+  el('div', {class:'meta'},
+    P.map(p => dotBtn(`dn-${d}-${p.id}`, p, true, false)),
+    sel(`dc-${d}`, cookList(), '👩‍🍳 kok', 'cook')))));
+
+/* phone day tabs */
+const tabs = document.getElementById('dayTabs');
+DAYS.forEach((n, d) => {
+  const b = el('button', {type:'button', class:isWe(d).trim(), 'aria-selected':'false'}, n.slice(0, 2), el('span', {id:'td' + d}));
+  b.onclick = () => setDay(d);
+  tabs.append(b);
+});
+
+/* ---------- family names ---------- */
+function applyFamily(f){
+  const m = (f && f.members) || [];
+  P.forEach(p => { p.name = (m.find(x => x.id === p.id) || {}).name || ''; });
+  legend.replaceChildren(...P.map(p => el('span', {class:'pill'}, el('span', {class:'dot', style:`--c:${p.c}`}, letter(p)), pname(p))));
+  document.querySelectorAll('[data-person]').forEach(n => {
+    const p = P.find(x => x.id === n.dataset.person);
+    n.title = pname(p);
+    if (n.dataset.letter) n.textContent = letter(p);
+  });
+  g.querySelectorAll('select[data-list]').forEach(s => setOptions(s, s.dataset.list === 'who' ? whoList() : cookList()));
+}
+function openFamily(){
+  const list = document.getElementById('famList');
+  list.replaceChildren(...P.map((p, i) => {
+    const inp = el('input', {class:'rp-t', placeholder:`${ROLE[i]} – naam`, 'data-id':p.id}); inp.value = p.name;
+    return el('div', {class:'rp-row'}, el('span', {class:'dot', style:`--c:${p.c}`}), el('span', {class:'rp-sep', style:'width:44px'}, ROLE[i]), inp);
+  }));
+  document.getElementById('famPanel').hidden = false;
+}
+document.getElementById('famBtn').onclick = openFamily;
+document.getElementById('famSave').onclick = () => {
+  const members = [...document.querySelectorAll('#famList input')].map(i => ({id:i.dataset.id, name:i.value.trim()}));
+  store.set(FAM_KEY, {members});
+  applyFamily({members});
+  document.getElementById('famPanel').hidden = true;
+};
+
+/* ---------- state ---------- */
+const fields = () => g.querySelectorAll('[data-k]');
+
+function collect(){
+  const s = {};
+  fields().forEach(n => {
+    const k = n.dataset.k;
+    if (n.tagName === 'SELECT' || n.tagName === 'INPUT') { if (n.value.trim()) s[k] = n.value; }
+    else if (n.tagName === 'BUTTON') { const on = n.getAttribute('aria-pressed') === 'true'; if (on !== (n.dataset.def === '1')) s[k] = on; }
+    else { const t = n.innerText.replace(/\n+$/, ''); if (t.trim()) s[k] = t; }
+  });
+  return s;
+}
+/* keepFocus: used for updates from the other phone, so the box you are typing in is left alone */
+function paint(s, keepFocus = false){
+  const act = document.activeElement;
+  fields().forEach(n => {
+    if (keepFocus && n === act) return;
+    const k = n.dataset.k;
+    if (n.tagName === 'SELECT') { ensureOption(n, s[k]); n.value = s[k] || ''; }
+    else if (n.tagName === 'INPUT') n.value = s[k] || '';
+    else if (n.tagName === 'BUTTON') n.setAttribute('aria-pressed', String(k in s ? s[k] : n.dataset.def === '1'));
+    else n.innerText = s[k] || '';
+  });
+  klant();
+  stripes();
+  fitAll();
+}
+/* shrink the text of a box step by step until it fits (A4 layout only) */
+function fit(cell){
+  cell.style.removeProperty('--fs');
+  const e = cell.querySelector('.ed');
+  if (!e || mq.matches) return;
+  const base = parseFloat(getComputedStyle(e).fontSize) * 0.75;   // px → pt
+  const over = () => cell.scrollHeight > cell.clientHeight + 1 || e.scrollHeight > e.clientHeight + 1;
+  for (let fs = base; over() && fs > 5; ) { fs -= 0.4; cell.style.setProperty('--fs', fs.toFixed(1) + 'pt'); }
+}
+const fitAll = () => g.querySelectorAll('.slot, .appt, .dinner').forEach(fit);
+/* show the client-name field only when "Bij klant" is picked */
+const KLANT = '🤝 Bij klant';
+function klant(){
+  g.querySelectorAll('.line.work').forEach(l => l.classList.toggle('klant', l.querySelector('select').value === KLANT));
+}
+function stripes(){
+  g.querySelectorAll('.slot').forEach(c => {
+    const cols = new Set([...c.querySelectorAll('button.dot[aria-pressed="true"]')].map(b => b.style.getPropertyValue('--c')));
+    c.querySelectorAll('.rec[aria-pressed="false"]').forEach(r => r.dataset.p.split(',').filter(Boolean).forEach(id => cols.add(`var(--${id})`)));
+    const on = [...cols];
+    if (!on.length) { c.style.removeProperty('--stripe'); return; }
+    const step = 100 / on.length;
+    c.style.setProperty('--stripe', `linear-gradient(${on.map((col, i) => `${col} ${i*step}% ${(i+1)*step}%`).join(',')})`);
+  });
+}
+const save = () => store.set(weekKey(monday), collect());
+
+function setDay(d){
+  day = d;
+  g.querySelectorAll('[data-day]').forEach(n => n.classList.toggle('off', +n.dataset.day !== d));
+  tabs.querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-selected', String(i === d)));
+}
+
+function load(){
+  const {w} = isoWeek(monday);
+  const sun = addDays(monday, 6);
+  document.getElementById('wkNo').textContent = w;
+  document.getElementById('range').textContent =
+    `${monday.getDate()} ${MON[monday.getMonth()]} – ${sun.getDate()} ${MON[sun.getMonth()]} ${sun.getFullYear()}`;
+  const thisWeek = +monday === +mondayOf(new Date());
+  DAYS.forEach((_, d) => {
+    const x = addDays(monday, d);
+    document.getElementById('dd' + d).textContent = `${x.getDate()}/${x.getMonth() + 1}`;
+    document.getElementById('td' + d).textContent = x.getDate();
+    tabs.children[d].classList.toggle('today', thisWeek && d === todayIdx());
+  });
+  const diff = Math.round((monday - mondayOf(new Date())) / (7 * 864e5));
+  document.getElementById('wkLabel').textContent =
+    diff === 0 ? `Deze week (W${w})` : diff === 1 ? `Volgende week (W${w})` : diff === -1 ? `Vorige week (W${w})` : `Week ${w}`;
+  renderRec();
+  paint(store.get(weekKey(monday)) || {});
+  setDay(day);
+  if (window.GP_REMOTE) GP_REMOTE.watchWeek(weekKey(monday), weekKey(addDays(monday, -7)));
+}
+
+/* ---------- recurring activities ---------- */
+const FREQ = [['w','Elke week'],['even','Even weken'],['odd','Oneven weken'],
+  ['m1','1e van de maand'],['m2','2e van de maand'],['m3','3e van de maand'],['m4','4e van de maand'],['mL','Laatste van de maand']];
+let rec = store.get(REC_KEY) || [];
+
+function occurs(r, x){
+  if ((x.getDay() + 6) % 7 !== +r.d) return false;
+  const wk = isoWeek(x).w, dim = new Date(x.getFullYear(), x.getMonth() + 1, 0).getDate();
+  switch (r.f){
+    case 'w': return true;
+    case 'even': return wk % 2 === 0;
+    case 'odd': return wk % 2 === 1;
+    case 'mL': return x.getDate() + 7 > dim;
+    default: return Math.ceil(x.getDate() / 7) === +r.f.slice(1);
+  }
+}
+const fmtT = t => { if (!t) return ''; const [h, m] = t.split(':'); return `${+h}u${m && m !== '00' ? m : ''}`; };
+function slotIndex(t){
+  const [h, m] = (t || '0:0').split(':').map(Number);
+  const starts = [...g.querySelectorAll('[data-g]')].map(n => parseFloat(n.innerText));
+  let idx = 0;
+  starts.forEach((s, i) => { if (!isNaN(s) && s <= h + (m || 0) / 60) idx = i; });
+  return idx;
+}
+function renderRec(){
+  g.querySelectorAll('.recs').forEach(n => n.replaceChildren());
+  [...rec].sort((a, b) => (a.from || '').localeCompare(b.from || '')).forEach(r => {
+    if (!(r.t || '').trim()) return;
+    DAYS.forEach((_, d) => {
+      if (!occurs(r, addDays(monday, d))) return;
+      const box = g.querySelector(`[data-slot="s-${d}-${slotIndex(r.from)}"] .recs`);
+      const first = P.find(p => r.p.includes(p.id));
+      const time = fmtT(r.from) + (r.to ? '–' + fmtT(r.to) : '');
+      box.append(el('button', {class:'rec', type:'button', 'data-k':`x-${r.id}-${d}`, 'data-def':'0', 'aria-pressed':'false',
+          'data-p':r.p.join(','), style:`--c:${first ? first.c : 'var(--muted)'}`, title:'Vaste activiteit · tik om ze deze week over te slaan'},
+        el('span', {class:'rt'}, `${r.t} ${time}`)));
+    });
+  });
+}
+function recChanged(){
+  store.set(REC_KEY, rec);
+  save();
+  renderRec();
+  paint(store.get(weekKey(monday)) || {});
+}
+function renderPanel(){
+  const list = document.getElementById('recList');
+  list.replaceChildren();
+  rec.forEach((r, i) => {
+    const t = el('input', {class:'rp-t', placeholder:'Wat? bv. ⚽ Voetbal'}); t.value = r.t;
+    t.oninput = () => { r.t = t.value; recChanged(); };
+    const who = el('span', {class:'rp-who'}, P.map(p => {
+      const b = el('button', {class:'dot', type:'button', style:`--c:${p.c}`, 'aria-pressed':String(r.p.includes(p.id)), title:pname(p)}, letter(p));
+      b.onclick = () => {
+        r.p = r.p.includes(p.id) ? r.p.filter(x => x !== p.id) : P.map(q => q.id).filter(id => id === p.id || r.p.includes(id));
+        b.setAttribute('aria-pressed', String(r.p.includes(p.id))); recChanged();
+      };
+      return b;
+    }));
+    const dsel = el('select', {}, DAYS.map((n, d) => el('option', {value:d}, n))); dsel.value = r.d;
+    dsel.onchange = () => { r.d = +dsel.value; recChanged(); };
+    const from = el('input', {type:'time'}); from.value = r.from;
+    from.onchange = () => { r.from = from.value; recChanged(); };
+    const to = el('input', {type:'time'}); to.value = r.to;
+    to.onchange = () => { r.to = to.value; recChanged(); };
+    const f = el('select', {}, FREQ.map(([v, n]) => el('option', {value:v}, n))); f.value = r.f;
+    f.onchange = () => { r.f = f.value; recChanged(); };
+    const del = el('button', {type:'button', class:'rp-del', title:'Verwijderen'}, '✕');
+    del.onclick = () => { if (confirm(`"${r.t}" verwijderen uit de vaste activiteiten?`)) { rec.splice(i, 1); renderPanel(); recChanged(); } };
+    list.append(el('div', {class:'rp-row'}, t, who, dsel, el('span', {class:'rp-sep'}, 'van'), from, el('span', {class:'rp-sep'}, 'tot'), to, f, del));
+  });
+}
+document.getElementById('recBtn').onclick = () => {
+  const panel = document.getElementById('recPanel');
+  panel.hidden = !panel.hidden;
+  if (!panel.hidden) renderPanel();
+};
+document.getElementById('recClose').onclick = () => { document.getElementById('recPanel').hidden = true; };
+document.getElementById('recAdd').onclick = () => {
+  rec.push({id:'r' + Date.now().toString(36), t:'', p:[], d:0, from:'18:00', to:'', f:'w'});
+  renderPanel();
+  document.querySelector('#recList .rp-row:last-child .rp-t').focus();
+};
+
+/* global: editable slot times */
+const slotTimes = {};
+function applySlots(v){
+  Object.keys(slotTimes).forEach(k => delete slotTimes[k]);
+  Object.assign(slotTimes, v || {});
+  g.querySelectorAll('[data-g]').forEach((n, i) => { if (n !== document.activeElement) n.innerText = slotTimes[n.dataset.g] || SLOTS[i]; });
+}
+applySlots(store.get(SLOT_KEY));
+g.querySelectorAll('[data-g]').forEach(n => {
+  n.addEventListener('input', () => { slotTimes[n.dataset.g] = n.innerText.trim(); store.set(SLOT_KEY, {...slotTimes}); });
+});
+
+/* called by the sync layer when the other phone changed something (and by 📂 Openen) */
+function onRemote(k, v){
+  if (k === weekKey(monday)) paint(v || {}, true);
+  else if (k === REC_KEY){
+    rec = Array.isArray(v) ? v : [];
+    renderRec();
+    paint(store.get(weekKey(monday)) || {}, true);
+    const pnl = document.getElementById('recPanel');
+    if (!pnl.hidden && !pnl.contains(document.activeElement)) renderPanel();
+  }
+  else if (k === SLOT_KEY){ applySlots(v); renderRec(); paint(store.get(weekKey(monday)) || {}, true); }
+  else if (k === FAM_KEY) applyFamily(v);
+}
+
+/* ---------- events ---------- */
+g.addEventListener('input', e => {
+  const n = e.target.closest('.ed[data-k]');
+  if (n && !n.innerText.trim()) n.innerHTML = '';
+  const cell = e.target.closest('.slot, .appt, .dinner');
+  if (cell) fit(cell);
+  if (e.target.closest('[data-k]')) save();
+});
+g.addEventListener('change', e => {
+  if (e.target.closest('.line.work')) {
+    klant();
+    const line = e.target.closest('.line.work');
+    if (e.target.tagName === 'SELECT' && line.classList.contains('klant')) line.querySelector('.client').focus();
+  }
+  save();
+});
+g.addEventListener('click', e => {
+  const b = e.target.closest('button.dot, button.rec');
+  if (b) { b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed') !== 'true')); stripes(); save(); return; }
+  if (e.target.classList.contains('slot')) e.target.querySelector('.ed').focus();
+});
+g.addEventListener('mousedown', e => {
+  const q = e.target.closest('.quick button');
+  if (!q) return;
+  e.preventDefault();                      // keep the caret in the box
+  const cell = q.closest('.appt'), box = cell.querySelector('.ed');
+  if (document.activeElement === box) document.execCommand('insertText', false, q.dataset.emo + ' ');
+  else { const t = box.innerText.trimEnd(); box.innerText = (t ? t + ' ' : '') + q.dataset.emo + ' '; fit(cell); save(); }
+});
+g.addEventListener('paste', e => {
+  if (!e.target.closest('.ed')) return;
+  e.preventDefault();
+  document.execCommand('insertText', false, e.clipboardData.getData('text/plain'));
+});
+
+/* phone: swipe left/right to change day (and week at the edges) */
+let touch = null;
+document.getElementById('wrap').addEventListener('touchstart', e => { touch = e.touches.length === 1 ? {x:e.touches[0].clientX, y:e.touches[0].clientY} : null; }, {passive:true});
+document.getElementById('wrap').addEventListener('touchend', e => {
+  if (!touch || !mq.matches) return;
+  const dx = e.changedTouches[0].clientX - touch.x, dy = e.changedTouches[0].clientY - touch.y;
+  touch = null;
+  if (Math.abs(dx) < 70 || Math.abs(dy) > 45) return;
+  const step = dx < 0 ? 1 : -1;
+  if (day + step > 6) { day = 0; monday = addDays(monday, 7); load(); }
+  else if (day + step < 0) { day = 6; monday = addDays(monday, -7); load(); }
+  else setDay(day + step);
+}, {passive:true});
+
+document.getElementById('moreBtn').onclick = () => document.getElementById('toolbar').classList.toggle('open');
+document.getElementById('prev').onclick = () => { monday = addDays(monday, -7); load(); };
+document.getElementById('next').onclick = () => { monday = addDays(monday, 7); load(); };
+mq.addEventListener('change', fitAll);
+/* Some viewers (app previews, sandboxed frames) silently ignore window.print(); detect that and explain. */
+let printOpened = false;
+window.addEventListener('beforeprint', () => { printOpened = true; fitAll(); });
+if (document.fonts) document.fonts.ready.then(fitAll);
+document.getElementById('print').onclick = () => {
+  printOpened = false;
+  try { window.print(); } catch (e) {}
+  setTimeout(() => {
+    if (printOpened) return;
+    const hint = document.getElementById('printHint');
+    hint.hidden = false;
+    setTimeout(() => { hint.hidden = true; }, 9000);
+  }, 700);
+};
+document.getElementById('clear').onclick = () => {
+  if (confirm('Alles van deze week wissen?')) { store.del(weekKey(monday)); load(); }
+};
+/* ---------- save to / open from a file ---------- */
+document.getElementById('export').onclick = () => {
+  save();
+  const all = {};
+  store.keys().forEach(k => { const v = store.get(k); if (v && Object.keys(v).length) all[k] = v; });
+  const json = JSON.stringify({app:'gezinsplanning', version:1, saved:new Date().toISOString(), data:all}, null, 1);
+  const {y, w} = isoWeek(monday);
+  const name = `gezinsplanning-${y}-W${String(w).padStart(2,'0')}.json`;
+  try{
+    const a = el('a', {href:URL.createObjectURL(new Blob([json], {type:'application/json'})), download:name});
+    document.body.append(a); a.click(); a.remove();
+  }catch(e){}
+  document.getElementById('exportName').textContent = name;
+  document.getElementById('exportText').value = json;
+  document.getElementById('exportBox').hidden = false;
+};
+document.getElementById('exportClose').onclick = () => { document.getElementById('exportBox').hidden = true; };
+document.getElementById('exportCopy').onclick = async () => {
+  const t = document.getElementById('exportText');
+  t.select();
+  try{ await navigator.clipboard.writeText(t.value); }catch(e){ document.execCommand('copy'); }
+  document.getElementById('exportCopy').textContent = '✓ Gekopieerd';
+};
+document.getElementById('import').onclick = () => document.getElementById('importFile').click();
+document.getElementById('importFile').onchange = async e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  try{
+    const obj = JSON.parse(await f.text());
+    if (obj.app !== 'gezinsplanning' || !obj.data) throw new Error();
+    Object.entries(obj.data).forEach(([k, v]) => { store.set(k, v); if ([REC_KEY, SLOT_KEY, FAM_KEY].includes(k)) onRemote(k, v); });
+    const weeks = Object.keys(obj.data).filter(k => /W\d+$/.test(k)).sort();
+    alert(`Geopend: ${weeks.length} week/weken${weeks.length ? ' (' + weeks.map(k => k.split(':')[1]).join(', ') + ')' : ''}` +
+      `${obj.data[REC_KEY] ? `, ${obj.data[REC_KEY].length} vaste activiteiten` : ''}${obj.data[FAM_KEY] ? ', gezinsnamen' : ''}.`);
+    load();
+  }catch(err){ alert('Dit bestand kon niet gelezen worden. Kies een bestand dat met "Opslaan" gemaakt werd.'); }
+  e.target.value = '';
+};
+
+document.getElementById('copy').onclick = async () => {
+  const pk = weekKey(addDays(monday, -7));
+  let prev = store.get(pk);
+  if (!prev && window.GP_REMOTE) prev = await GP_REMOTE.fetch(pk);
+  if (!prev) { alert('Er is niets ingevuld voor de vorige week.'); return; }
+  const cur = collect();
+  for (const [k, v] of Object.entries(prev)) if (/^(w|b)-/.test(k)) cur[k] = v;
+  paint(cur); save();
+};
+
+applyFamily(store.get(FAM_KEY));
+load();
+if (!CFG.firebase && !store.get(FAM_KEY)) openFamily();
+
+/* offline support + installable app */
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+
+<script type="module">
+/* ---------- shared sync (Firebase), only when config.js contains a Firebase configuration ---------- */
+const cfg = window.GP_CONFIG || {};
+const $ = id => document.getElementById(id);
+const status = (cls, text) => { const s = $('syncStatus'); s.hidden = false; s.className = 'sync ' + cls; s.textContent = text; };
+
+if (cfg.firebase) start().catch(e => status('err', '⚠ Sync niet beschikbaar'));
+
+async function start(){
+  const V = '10.12.2';
+  status('', '… verbinden');
+  const [{initializeApp}, A, F] = await Promise.all([
+    import(`https://www.gstatic.com/firebasejs/${V}/firebase-app.js`),
+    import(`https://www.gstatic.com/firebasejs/${V}/firebase-auth.js`),
+    import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`),
+  ]);
+  const app = initializeApp(cfg.firebase);
+  const auth = A.getAuth(app);
+  const db = F.initializeFirestore(app, {localCache: F.persistentLocalCache({tabManager: F.persistentMultipleTabManager()})});
+  const family = cfg.family || 'gezin';
+  const authBtn = $('authBtn');
+  authBtn.hidden = false;
+
+  const isWeek = k => /:\d{4}-W\d{2}$/.test(k);
+  const SETTINGS = {'gezinsplanning:recurring':'recurring', 'gezinsplanning:slots':'slots', 'gezinsplanning:family':'family'};
+  const ref = k => isWeek(k) ? F.doc(db, 'families', family, 'weeks', k.split(':')[1])
+                 : SETTINGS[k] ? F.doc(db, 'families', family, 'settings', SETTINGS[k]) : null;
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+  let last = {}, timers = {}, pending = {}, subs = {};
+
+  async function write(k, v){
+    const r = ref(k);
+    if (!r) return;
+    try{
+      if (isWeek(k)) {
+        /* only send what changed, so two phones editing different boxes never overwrite each other */
+        const prev = last[k] || {}, next = v || {}, ch = {};
+        for (const [f, val] of Object.entries(next)) if (!same(prev[f], val)) ch[f] = val;
+        for (const f of Object.keys(prev)) if (!(f in next)) ch[f] = F.deleteField();
+        if (!Object.keys(ch).length) return;
+        last[k] = {...next};
+        await F.setDoc(r, ch, {merge:true});
+      } else {
+        last[k] = v;
+        await F.setDoc(r, {v});
+      }
+      if (navigator.onLine) status('ok', '✓ Gesynchroniseerd');
+    }catch(e){ status('err', '⚠ Niet bewaard'); }
+  }
+  function flush(){ for (const k of Object.keys(pending)) { clearTimeout(timers[k]); write(k, pending[k]); delete pending[k]; } }
+
+  function watch(k){
+    if (subs[k]) return;
+    subs[k] = F.onSnapshot(ref(k), snap => {
+      if (snap.metadata.hasPendingWrites) return;
+      if (!snap.exists()) {
+        if (snap.metadata.fromCache) return;          // wait for the server's answer
+        const local = store.get(k);                     // first time online: upload what this device already has
+        if (local != null && (!isWeek(k) || Object.keys(local).length)) write(k, local);
+        else if (k === 'gezinsplanning:family') openFamily();
+        return;
+      }
+      const v = isWeek(k) ? snap.data() : snap.data().v;
+      last[k] = isWeek(k) ? {...v} : v;
+      if (pending[k]) return;                           // our own newer edit is about to be sent
+      store.local(k, v);
+      onRemote(k, v);
+    }, err => {
+      if (err.code === 'permission-denied' && auth.currentUser) {
+        /* signed in with a Google account that is not on the family's list in the security rules */
+        const who = auth.currentUser.email;
+        A.signOut(auth).then(() => { $('lgErr').textContent = `${who} heeft geen toegang tot deze planning. Kies een ander Google-account.`; });
+      } else status('err', '⚠ Geen toegang');
+    });
+  }
+
+  function connect(){
+    window.GP_REMOTE = {
+      push(k, v){ if (!ref(k)) return; pending[k] = v; clearTimeout(timers[k]); timers[k] = setTimeout(() => { delete pending[k]; write(k, v); }, 500); },
+      watchWeek(...keys){ keys.forEach(watch); },
+      async fetch(k){ try{ const s = await F.getDoc(ref(k)); return s.exists() ? s.data() : null; }catch(e){ return null; } },
+    };
+    Object.keys(SETTINGS).forEach(watch);
+    GP_REMOTE.watchWeek(weekKey(monday), weekKey(addDays(monday, -7)));
+    status(navigator.onLine ? 'ok' : 'off', navigator.onLine ? '✓ Gesynchroniseerd' : '● Offline');
+  }
+  function disconnect(){
+    flush();
+    Object.values(subs).forEach(u => u());
+    subs = {}; last = {};
+    window.GP_REMOTE = null;
+  }
+
+  A.onAuthStateChanged(auth, user => {
+    if (user) { $('login').hidden = true; authBtn.textContent = 'Afmelden'; connect(); }
+    else { disconnect(); authBtn.textContent = 'Inloggen'; status('off', 'Niet ingelogd'); $('login').hidden = false; }
+  });
+  const google = new A.GoogleAuthProvider();
+  google.setCustomParameters({prompt: 'select_account'});
+  $('loginForm').onsubmit = async e => {
+    e.preventDefault();
+    $('lgErr').textContent = '';
+    try{ await A.signInWithPopup(auth, google); }
+    catch(err){
+      const c = err.code || '';
+      $('lgErr').textContent =
+        c.includes('popup-closed') || c.includes('cancelled-popup') ? '' :
+        c.includes('unauthorized-domain') ? 'Dit webadres staat nog niet bij de toegestane domeinen in Firebase.' :
+        c.includes('popup-blocked') || c.includes('operation-not-supported') || c.includes('web-storage')
+          ? 'Inloggen lukt hier niet. Open de planning in Chrome, log daar in en open daarna de app opnieuw.'
+          : 'Inloggen mislukt. Probeer het nog eens.';
+    }
+  };
+  $('lgLocal').onclick = () => { $('login').hidden = true; status('off', 'Enkel op dit toestel'); };
+  authBtn.onclick = () => { if (auth.currentUser) { if (confirm('Afmelden op dit toestel?')) A.signOut(auth); } else $('login').hidden = false; };
+
+  addEventListener('online',  () => { if (window.GP_REMOTE) status('ok', '✓ Gesynchroniseerd'); });
+  addEventListener('offline', () => { if (window.GP_REMOTE) status('off', '● Offline – wordt later bewaard'); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
+}
+</script>
+</body>
+</html>
